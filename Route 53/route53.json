@@ -1,0 +1,57 @@
+{
+"AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+        
+        "DomainName": {
+            "Description": "Name of the Domain",
+            "Type": "String",
+            "Default": "dreoconsulting.com"
+        },
+        
+        "HostedZoneId": {
+            "Description": "AWS Route53 Hosted Zone",
+            "Type": "AWS::Route53::HostedZone::Id",
+            "ConstraintDescription": "must be the name of an existing EC2 KeyPair"
+        }
+           
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+        
+        "Route53RS": {
+            "Type": "AWS::Route53::RecordSet",
+            "Properties": {
+                "Name": 
+                { "Ref": "DomainName" },
+                "Type": "A",
+                "HostedZoneId": 
+                { "Ref": "HostedZoneId" },
+                "AliasTarget": {
+                    "DNSName": {
+                        "Fn::ImportValue": {
+                            "Fn::Sub": "ALBDNSName"
+                        }
+                    },
+                    "HostedZoneId": {
+                        "Fn::ImportValue": {
+                            "Fn::Sub": "ALBHostedId"
+                        }
+                    }
+                }
+            }
+        }             
+
+    },
+    "Outputs": {
+
+    }
+}

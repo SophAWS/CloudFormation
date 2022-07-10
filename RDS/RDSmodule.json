@@ -1,0 +1,119 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+        "WfDBStorage": {
+            "Description": " Allocated Storage for Database",
+            "Type": "Number",
+            "Default": 20,
+            "MinValue": 20,
+            "MaxValue": 1000,
+            "ConstraintDescription": "must be between 20 and 1000 GiB"
+        },
+        "WfDBInstanceClass": {
+            "Description": " Classes of DB Instances",
+            "Type": "String",
+            "Default": "db.t3.micro",
+            "ConstraintDescription": "must select a valid instance type"
+        },
+        "WfDBInstID": {
+            "Default": "mydbinstance",
+            "Description": "Databace Instance Identifier",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and must not end with hyphen or contain two consecutive hyphen"
+        },
+        "WfDBName": {
+            "Default": "mydb",
+            "Description": "Database Name",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain only alphanumeric characters."
+        },
+        "WfDBUsername": {
+            "NoEcho": true,
+            "Description": "Username for the database",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must begin with a letter and contain alphanumeric"
+        },
+        "WfDBUserPWD": {
+            "NoEcho": true,
+            "Description": "Password for the database",
+            "Type": "String",
+            "MinLength": "1",
+            "MaxLength": "64",
+            "AllowedPattern": "[a-zA-Z][a-zA-Z0-9]*",
+            "ConstraintDescription": "must contain only alphanumeric"
+        },
+        "WfStoragetype": {
+            "Description": "Database Storage Types",
+            "Type": "String",
+            "Default": "gp2",
+            "AllowedValues": [
+                "gp2",
+                "io1",
+                "standard"
+            ]
+        },
+        
+        "DBSUbnet": {
+            "Description": "Available Subnet Ids",
+            "Type": "List<AWS::EC2::Subnet::Id>",
+            "ConstraintDescription": "must be an existing Subnet in the VPC"
+        }
+        
+    },
+    "Mappings": {
+
+    },
+    "Conditions": {
+
+    },
+    "Resources": {
+      "WfRdsDBInstance": {
+        "Type": "AWS::RDS::DBInstance",
+        "Properties": {
+          "AllocatedStorage": { "Ref": "WfDBStorage" },
+          "DBInstanceClass": { "Ref": "WfDBInstanceClass" },
+          "AvailabilityZone": {"Fn::ImportValue" : {"Fn::Sub": "SubAZ"}},
+          "DBInstanceIdentifier": { "Ref": "WfDBInstID" },
+          "DBName": { "Ref": "WfDBName" },
+          "DBSubnetGroupName": { "Ref": "WfRdsDBSubnetGroup" },
+          "Engine": "MySQL",
+          "EngineVersion": "8.0.29",
+          "MasterUsername": { "Ref": "WfDBUsername" },
+          "MasterUserPassword": { "Ref": "WfDBUserPWD" },
+          "MultiAZ": false,
+          "Port": "3306",
+          "PubliclyAccessible": false,
+          "StorageType": { "Ref": "WfStoragetype" },
+          "VPCSecurityGroups": [{"Fn::ImportValue" : {"Fn::Sub": "RdssecGrpId"}}]
+        }
+      },
+
+      "WfRdsDBSubnetGroup": {
+         "Type": "AWS::RDS::DBSubnetGroup",
+         "Properties": {
+            "DBSubnetGroupDescription": "Subnet Group for database",
+            "SubnetIds": [
+            { "Ref": "DBSUbnet" }
+            ],
+            "Tags": [ { "Key": "Name", "Value":  "WfRdsSubgrp" } ]
+         }
+      }
+
+    },
+    "Outputs": {
+
+    }
+}

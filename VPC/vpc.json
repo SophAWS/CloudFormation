@@ -1,0 +1,265 @@
+{
+    "AWSTemplateFormatVersion": "2010-09-09",
+    "Description": "",
+    "Metadata": {
+
+    },
+    "Parameters": {
+      "VpcCidr": {
+        "Description": " VPC Cidr Block",
+        "Type": "String",
+        "Default":  "17.0.0.0/16"
+      }
+      },
+
+    "Mappings": {
+        "RegionMap": {
+            "us-east-1": {
+                "HVM64": "ami-0ff8a91507f77f867",
+                "HVMG2": "ami-0a584ac55a7631c0c"
+            },
+            "us-west-1": {
+                "HVM64": "ami-0bdb828fd58c52235",
+                "HVMG2": "ami-066ee5fd4a9ef77f1"
+            },
+            "eu-west-1": {
+                "HVM64": "ami-047bb4163c506cd98",
+                "HVMG2": "ami-0a7c483d527806435"
+            },
+            "ap-northeast-1": {
+                "HVM64": "ami-06cd52961ce9f0d85",
+                "HVMG2": "ami-053cdd503598e4a9d"
+            },
+            "ap-southeast-1": {
+                "HVM64": "ami-08569b978cc4dfa10",
+                "HVMG2": "ami-0be9df32ae9f92309"
+            }
+        },
+        "EC2TypeBasedOnEnv": {
+              "us-east-1": {
+                  "instanceType": "t2.nano"
+              },
+              "us-east-2": {
+                  "instanceType": "t2.micro"
+              },
+              "us-west-1": {
+                  "instanceType": "t2.small"
+              },
+              "ca-central-1": {
+                  "instanceType": "t2.medium"
+              }
+            }
+    },
+
+    "Conditions": {
+
+    },
+    "Resources": {
+      "PracVpc": {
+        "Type": "AWS::EC2::VPC",
+        "Properties": {
+          "CidrBlock": { "Ref": "VpcCidr" },
+          "Tags": [{ "Key": "Name", "Value":  "Test" }]
+        }
+      },
+      "PracSub": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "MapPublicIpOnLaunch" : true,
+          "AvailabilityZone": { "Fn::Select" : [ 1, {"Fn::GetAZs" : { "Ref" : "AWS::Region" }} ] },
+          "CidrBlock": { "Fn::Select" : [ 0, { "Fn::Cidr" : [{ "Fn::GetAtt" : [ "PracVpc", "CidrBlock" ]}, 4, 8 ]}]},
+          
+          "Tags":[
+          { "Key": "Name", "Value":  "PublicSN1" }
+          ]
+        }
+      },
+      "PracSubPrvt": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "AvailabilityZone": { "Fn::Select" : [ 1, {"Fn::GetAZs" : { "Ref" : "AWS::Region" }} ] },
+          "CidrBlock": { "Fn::Select" : [ 1, { "Fn::Cidr" : [{ "Fn::GetAtt" : [ "PracVpc", "CidrBlock" ]}, 4, 8 ]}]},
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "PrivateSN1"
+            }
+          ]
+        }
+      },
+      "PracSubPub": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "MapPublicIpOnLaunch" : true,
+          "AvailabilityZone": { "Fn::Select" : [ 2, {"Fn::GetAZs" : { "Ref" : "AWS::Region" }} ] },
+          "CidrBlock": { "Fn::Select" : [ 2, { "Fn::Cidr" : [{ "Fn::GetAtt" : [ "PracVpc", "CidrBlock" ]}, 4, 8 ]}]},
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "PublicSN2"
+            }
+          ]
+        }
+      },
+      "PracSubPrvt2": {
+        "Type": "AWS::EC2::Subnet",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "MapPublicIpOnLaunch" : true,
+          "AvailabilityZone": { "Fn::Select" : [ 3, {"Fn::GetAZs" : { "Ref" : "AWS::Region" }} ] },
+          "CidrBlock": { "Fn::Select" : [ 3, { "Fn::Cidr" : [{ "Fn::GetAtt" : [ "PracVpc", "CidrBlock" ]}, 4, 8 ]}]},
+          "Tags": [
+            {
+              "Key": "Name",
+              "Value": "PrivateSN2"
+            }
+          ]
+        }
+      },
+      "PracGW": {
+        "Type": "AWS::EC2::InternetGateway",
+        "Properties": {
+          "Tags": [{ "Key": "Name", "Value":  "WorkingGW" }]
+        }
+      },
+      "AttachGateway": {
+        "Type": "AWS::EC2::VPCGatewayAttachment",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "InternetGatewayId": { "Ref": "PracGW" }
+        }
+      },
+      "PrctPrvtRT": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "Tags": [{ "Key": "Name", "Value":  "PrvtRT" }]
+        }
+      },
+      "PracprvtRTAssc": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PracSubPrvt" },
+          "RouteTableId": { "Ref": "PrctPrvtRT" }
+        }
+      },
+      "PrctPubRT": {
+        "Type": "AWS::EC2::RouteTable",
+        "Properties": {
+          "VpcId": { "Ref": "PracVpc" },
+          "Tags": [{ "Key": "Name", "Value":  "PubRT" }]
+        }
+      },
+      "PracpubRTAssc": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PracSub" },
+          "RouteTableId": { "Ref": "PrctPubRT" }
+        }
+      },
+      "PracpubRTAssc1": {
+        "Type": "AWS::EC2::SubnetRouteTableAssociation",
+        "Properties": {
+          "SubnetId": { "Ref": "PracSubPub" },
+          "RouteTableId": { "Ref": "PrctPubRT" }
+        }
+      },
+      "PracRoute": {
+        "Type": "AWS::EC2::Route",
+        "Properties": {
+          "RouteTableId": { "Ref": "PrctPubRT" },
+          "DestinationCidrBlock": "0.0.0.0/0",
+          "GatewayId": { "Ref": "PracGW" }
+        }
+      },
+#     "PracEIP": {
+#       "Type": "AWS::EC2::EIP",
+#       "Properties": {
+#         "Domain": "vpc"
+#        },
+#       "DependsOn" : "PracGW"
+#      },
+#     "PracNAT": {
+#       "Type" : "AWS::EC2::NatGateway",
+#       "Properties" : {
+#        "AllocationId" : { "Fn::GetAtt" : [ "PracEIP", "AllocationId" ]},
+#        "SubnetId" : { "Ref": "PracSubPrvt" }
+#           }
+#     },
+#     "PracNATRoute": {
+#       "Type": "AWS::EC2::Route",
+#       "Properties": {
+#        "RouteTableId": { "Ref": "PrctPrvtRT" },
+#        "DestinationCidrBlock": "0.0.0.0/0",
+#        "NatGatewayId": { "Ref": "PracNAT" }
+#        }
+#      }
+
+    },
+    "Outputs": {
+      "PracVpcId" : {
+        "Value" : { "Fn::GetAtt" : [ "PracVpc", "VpcId" ]},
+        "Export": {
+          "Name": "PracVpcId"
+        }
+      },
+      "SubAtt" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSub", "SubnetId" ]},
+        "Export": {
+          "Name": "PracSubId"
+        }
+      },
+      "SubAtt12" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPub", "SubnetId" ]},
+        "Export": {
+          "Name": "PracSubId2"
+        }
+      },
+      "SubAtt112" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPrvt", "SubnetId" ]},
+        "Export": {
+          "Name": "PracprvtSubId"
+        }
+      },
+      "SubAtt113" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPrvt2", "SubnetId" ]},
+        "Export": {
+          "Name": "PracprvtSubId2"
+        }
+      },
+      "SubAtt1" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPrvt", "CidrBlock" ]}
+      },
+      "SubAtt2" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPrvt", "AvailabilityZone" ]},
+        "Export": {
+          "Name": "SubAZ"
+        }
+      },
+      "SubAtt212" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPrvt2", "AvailabilityZone" ]},
+        "Export": {
+          "Name": "SubAZ2"
+        }
+      },
+      "SubAtt23" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSub", "AvailabilityZone" ]},
+        "Export": {
+          "Name": "SubAZ23"
+        }
+      },
+      "SubAtt3" : {
+        "Value" : { "Fn::GetAtt" : [ "PracSubPub", "CidrBlock" ]},
+        "Export": {
+          "Name": "SubAZ3"
+        }
+      },
+#     "AllocAttr" : {
+#       "Value" : { "Fn::GetAtt" : [ "PracEIP", "AllocationId" ]}
+#      }
+
+    }
+}
